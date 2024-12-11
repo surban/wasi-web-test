@@ -1,0 +1,17 @@
+[build]
+target = "wasm32-wasip1-threads"
+
+[target.wasm32-wasip1-threads]
+rustflags = [
+    #"-C",
+    #"linker=/data/surban/dev/wasi-sdk-24.0-x86_64-linux/bin/wasm32-wasip1-threads-clang",
+    #"-C",
+    #"link-self-contained=off",
+    #"--print",
+    #"link-args",
+    "-Z",
+    "wasi-exec-model=reactor",
+]
+
+[unstable]
+build-std = ["core", "std", "alloc", "proc_macro", "panic_abort"]
