@@ -24,7 +24,7 @@ web-sys = { path = "../wasm-bindgen/crates/web-sys" }
 
 # tokio = { path = "../tokio/tokio" }
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-    'cfg(wasm_bindgen_unstable_test_coverage)',
-] }
+# [lints.rust]
+# unexpected_cfgs = { level = "warn", check-cfg = [
+#     'cfg(wasm_bindgen_unstable_test_coverage)',
+# ] }

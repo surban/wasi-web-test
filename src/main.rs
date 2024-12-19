@@ -8,7 +8,7 @@ use web_sys::WorkerGlobalScope;
 
 use std::cell::{Cell, RefCell};
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{mpsc, Mutex};
+use std::sync::{mpsc, Arc, LazyLock, Mutex};
 use std::time::Duration;
 
 use tokio::time::sleep;
@@ -313,6 +313,54 @@ pub fn thread_test() {
 
         println!("TLS B: {}", TLS_B.with(|msg| msg.borrow().0));
     });
+}
+
+#[wasm_bindgen]
+pub fn mutex_test() {
+    let mutex = Arc::new(Mutex::new(0));
+    let mutex1 = mutex.clone();
+    std::thread::spawn(move || {
+        println!("thread 4 starting");
+        println!("thread 4 locking mutex");
+        let mut _guard = mutex1.lock().unwrap();
+        println!("thread 4 locked mutex");
+        std::thread::sleep(Duration::from_secs(10));
+        *_guard = 1;
+        println!("thread 4 released mutex")
+    });
+
+    let mutex2 = mutex.clone();
+    std::thread::spawn(move || {
+        println!("thread 5 starting");
+        std::thread::sleep(Duration::from_secs(1));
+        println!("thread 5 locking mutex");
+        let _guard = mutex2.lock().unwrap();
+        println!("thread 5 locked mutex with value: {}", *_guard);
+        std::thread::sleep(Duration::from_secs(2));
+        println!("thread 5 released mutex")
+    });
+}
+
+static MAIN_MUTEX: LazyLock<Arc<Mutex<u32>>> = LazyLock::new(|| Arc::new(Mutex::new(0)));
+
+#[wasm_bindgen]
+pub fn main_mutex_block() {
+    let mutex = MAIN_MUTEX.clone();
+    std::thread::spawn(move || {
+        let mut guard = mutex.lock().unwrap();
+        println!("thread acquired mutex");
+        std::thread::sleep(Duration::from_secs(10));
+        *guard = 11;
+        println!("thread released mutex");
+    });
+}
+
+#[wasm_bindgen]
+pub fn main_mutex_read() {
+    let mutex = MAIN_MUTEX.clone();
+    println!("main acquiring mutex");
+    let guard = mutex.lock().unwrap();
+    println!("main acquired mutex with value={}", *guard);
 }
 
 pub struct MyType(u32);

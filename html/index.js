@@ -67,15 +67,27 @@ async function jsMain() {
     // console.info("thread test");
     // impl.thread_test();
 
-    console.info("async thread test");
-    await impl.async_thread_test();
+    // console.info("async thread test");
+    // await impl.async_thread_test();
 
     // console.info("waiting for 1 second");
     // await new Promise(resolve => setTimeout(resolve, 1000));
     // console.info("1 second wait done");
 
-    console.info("async thread test 2nd run");
-    await impl.async_thread_test();
+    // console.info("async thread test 2nd run");
+    //await impl.async_thread_test();
+
+    //impl.mutex_test();
+
+    console.info("blocking main mutex");
+    impl.main_mutex_block();
+
+    console.info("waiting for 1 second");
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.info("1 second wait done");
+
+    console.info("reading main mutex");
+    impl.main_mutex_read();
 
     console.info("waiting for stdout and stderr");
     await Promise.all([stdoutTask, stderrTask]);
