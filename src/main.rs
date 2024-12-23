@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 #![no_main]
 
-use js_sys::Array;
+use js_sys::{Array, Promise};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::spawn_thread;
-use web_sys::WorkerGlobalScope;
+use wasm_bindgen_futures::{spawn_thread, JsFuture};
+use web_sys::{Window, WorkerGlobalScope};
 
 use std::cell::{Cell, RefCell};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -209,6 +209,49 @@ pub fn various_tests() {
     println!("reading /hello.txt");
     let txt = std::fs::read_to_string("/hello.txt").unwrap();
     println!("contents: {txt}");
+}
+
+fn sleep_promise(milliseconds: i32) -> Promise {
+    Promise::new(&mut |resolve, _reject| {
+        println!("get window");
+        let gs = js_sys::global();
+        if let Some(window) = gs.dyn_ref::<Window>() {
+            println!("got window");
+            window
+            .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, milliseconds)
+            .unwrap();
+        } else if let Some(wgs) = gs.dyn_ref::<WorkerGlobalScope>() {
+            println!("got worker global scope");
+            wgs.set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, milliseconds)
+            .unwrap();
+        } else {
+            println!("detected node environment");
+            let set_timeout = js_sys::Reflect::get(&gs, &"setTimeout".into()).unwrap();
+            let set_timeout_fn = set_timeout.dyn_into::<js_sys::Function>().unwrap();
+            set_timeout_fn
+            .call2(&gs, &resolve, &milliseconds.into())
+            .unwrap();
+        }
+    })
+}
+
+#[wasm_bindgen]
+pub async fn simple_wait_test() {
+    println!("Waiting for 3 seconds");
+    JsFuture::from(sleep_promise(3000)).await.unwrap();
+    //let a = sleep_promise(3000);
+    println!("Wait done");
+}
+
+#[wasm_bindgen]
+pub async fn simple_thread_test() {
+    println!("Starting simple thread");
+    let hnd = wasm_bindgen_futures::spawn_thread(|| async move {
+        println!("Hello from simple thread");
+    });
+    println!("Waiting for thread");
+    hnd.await.unwrap();
+    println!("Thread done");
 }
 
 #[wasm_bindgen]

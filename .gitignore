@@ -1,4 +1,5 @@
 /target
 /html/wasi-web-test*
 /html/wwrr*
-
+/deno/wasi-web-test*
+/deno/wwrr*
