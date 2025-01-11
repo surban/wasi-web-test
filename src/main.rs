@@ -7,9 +7,9 @@ use wasm_bindgen_futures::{spawn_thread, JsFuture};
 use web_sys::{Window, WorkerGlobalScope};
 
 use std::cell::{Cell, RefCell};
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{mpsc, Arc, LazyLock, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tokio::time::sleep;
 
@@ -94,7 +94,7 @@ async fn async_run() -> u32 {
     sleep(Duration::from_secs(5)).await;
 
     tokio::task::spawn_blocking(|| {
-        println!("hey from blocing task");
+        println!("hey from blocking task");
         std::thread::sleep(Duration::from_secs(5));
         println!("blocking task done");
     });
@@ -109,6 +109,59 @@ async fn async_bg() {
         println!("background {i}");
         sleep(Duration::from_secs(1)).await;
     }
+}
+
+#[wasm_bindgen]
+pub async fn spawn_join_thread() {
+    println!("spawning and join thread");
+
+    let value = Arc::new(AtomicBool::new(false));
+
+    let thread_value = value.clone();
+    let hnd = std::thread::spawn(move || {
+        web_sys::console::info_1(&JsValue::from_str(&format!("hello from thread console")));
+        println!("hello from thread");
+        std::thread::sleep(Duration::from_secs(2));
+        thread_value.store(true, Ordering::Relaxed);
+        println!("sleep 2 from thread");
+        std::thread::sleep(Duration::from_secs(2));
+        println!("bye from thread");
+    });
+
+    println!("waiting 3s");
+    std::thread::sleep(Duration::from_secs(3));
+
+    // std::thread::spawn(|| {
+    //     println!("test from second thread!");
+    //     std::thread::spawn(|| {
+    //         println!("test from nested thread!");
+    //     });
+    // });
+
+    println!("value: {}", value.load(Ordering::Relaxed));
+
+    println!("waiting for thread");
+    let start = Instant::now();
+    while !hnd.is_finished() {
+        println!("thread is active");
+        std::thread::sleep(Duration::from_millis(10));
+
+        if start.elapsed() > Duration::from_secs(5) {
+            println!("aborting thread wait");
+            break;
+        }
+    }
+    if hnd.is_finished() {
+        println!("thread has finished");
+    }
+
+    // for _ in 0 .. 32 {
+    //     println!("===");
+    // }
+
+    println!("joining thread");
+    hnd.join().unwrap();
+    println!("joined thread");
 }
 
 #[wasm_bindgen]
@@ -138,6 +191,13 @@ pub async fn async_sleep(timeout: i32) {
         .unwrap();
 
     rx.await.unwrap();
+}
+
+#[wasm_bindgen]
+pub async fn sync_sleep(timeout: i32) {
+    println!("sleep for {timeout} ms");
+    std::thread::sleep(Duration::from_millis(timeout as _));
+    println!("sleep done");
 }
 
 #[wasm_bindgen]
@@ -218,19 +278,19 @@ fn sleep_promise(milliseconds: i32) -> Promise {
         if let Some(window) = gs.dyn_ref::<Window>() {
             println!("got window");
             window
-            .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, milliseconds)
-            .unwrap();
+                .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, milliseconds)
+                .unwrap();
         } else if let Some(wgs) = gs.dyn_ref::<WorkerGlobalScope>() {
             println!("got worker global scope");
             wgs.set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, milliseconds)
-            .unwrap();
+                .unwrap();
         } else {
             println!("detected node environment");
             let set_timeout = js_sys::Reflect::get(&gs, &"setTimeout".into()).unwrap();
             let set_timeout_fn = set_timeout.dyn_into::<js_sys::Function>().unwrap();
             set_timeout_fn
-            .call2(&gs, &resolve, &milliseconds.into())
-            .unwrap();
+                .call2(&gs, &resolve, &milliseconds.into())
+                .unwrap();
         }
     })
 }

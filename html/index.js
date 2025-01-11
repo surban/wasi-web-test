@@ -5,8 +5,13 @@ async function jsMain() {
     console.info("crossOriginIsolated: ", window.crossOriginIsolated);
 
     impl.__runtimeLogConfig.filter = "debug";
-    const instance = await impl.default({});
+    //const instance = await impl.default({ streamStdout: true, streamStderr: true });
+    const instance = await impl.default({  });
     console.log("got WASM instance", instance);
+
+//     console.log("before event loop tick");
+//     await new Promise(r => setTimeout(r, 0));
+//     console.log("after event loop tick");
 
     const stdoutTask = (async () => {
         let stdoutBuffer = '';
@@ -17,9 +22,9 @@ async function jsMain() {
 
             let newlineIndex;
             while ((newlineIndex = stdoutBuffer.indexOf('\n')) !== -1) {
-            const line = stdoutBuffer.slice(0, newlineIndex + 1);
-            stdoutBuffer = stdoutBuffer.slice(newlineIndex + 1);
-            console.info("%c==== STDOUT: ", "color: blue;", line.trim());
+                const line = stdoutBuffer.slice(0, newlineIndex + 1);
+                stdoutBuffer = stdoutBuffer.slice(newlineIndex + 1);
+                console.info("%c==== STDOUT: ", "color: blue;", line.trim());
             }
         }
 
@@ -50,7 +55,11 @@ async function jsMain() {
         }
     })();
 
-    await impl.simple_thread_test();
+    //await impl.simple_thread_test();
+    await impl.spawn_join_thread();
+
+    //await impl.simple_thread_test();
+    //await impl.sync_sleep(2900);
     return;
 
     console.info("calling double 10");
@@ -81,16 +90,16 @@ async function jsMain() {
     //await impl.async_thread_test();
 
     impl.mutex_test();
- 
-//     console.info("blocking main mutex");
-//     impl.main_mutex_block();
-// 
-//     console.info("waiting for 1 second");
-//     await new Promise(resolve => setTimeout(resolve, 1000));
-//     console.info("1 second wait done");
-// 
-//     console.info("reading main mutex");
-//     impl.main_mutex_read();
+
+    //     console.info("blocking main mutex");
+    //     impl.main_mutex_block();
+    // 
+    //     console.info("waiting for 1 second");
+    //     await new Promise(resolve => setTimeout(resolve, 1000));
+    //     console.info("1 second wait done");
+    // 
+    //     console.info("reading main mutex");
+    //     impl.main_mutex_read();
 
 
 
@@ -102,8 +111,12 @@ async function jsMain() {
 
 async function testWorker() {
     console.info("starting test worker");
-    const worker = new Worker("test-worker.js", {type: "module"});
+    const worker = new Worker("test-worker.js", { type: "module" });
     worker.postMessage("Hello worker!");
 }
 
 jsMain();
+
+
+// Okay, what do we want to test?
+// Shall we find out why the scheduler does not start?

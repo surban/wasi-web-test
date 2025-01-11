@@ -12,6 +12,7 @@ rustflags = [
     "-Z",
     "wasi-exec-model=reactor",
 ]
+runner = "cargo run --release --quiet --target x86_64-unknown-linux-gnu --manifest-path /data/surban/dev/rust-wasi-web/wasm-bindgen/crates/cli/Cargo.toml --bin wasm-bindgen-test-runner --"
 
 [unstable]
 build-std = ["core", "std", "alloc", "proc_macro", "panic_abort"]
